@@ -14,7 +14,6 @@ namespace Mirapi.Core.DTOs
         public bool IsFemale { get; set; }
         public string About { get; set; }
         public string Mail { get; set; }
-        public string CompanyName { get; set; }
 
         public string Address { get; set; }
 

@@ -38,7 +38,7 @@ namespace Mirapi
 
 
 
-            services.AddEntityFrameworkNpgsql().AddDbContext<ApplicationDbContext>() .BuildServiceProvider();
+            services.AddEntityFrameworkNpgsql().AddDbContext<ApplicationDbContext>().BuildServiceProvider();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
            .AddJwtBearer(jwtBearerOptions =>
@@ -78,6 +78,7 @@ namespace Mirapi
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
