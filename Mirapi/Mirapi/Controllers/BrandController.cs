@@ -65,14 +65,15 @@ namespace Mirapi.Controllers
 
         [HttpGet]
         [Route("{id}")]
-        public IActionResult GetById()
+        public IActionResult GetById(string id)
         {
             IActionResult response = BadRequest();
 
             try
             {
-                var brands = unitOfWork.Brands.GetAll();
-                response = StatusCode(StatusCodes.Status200OK, new ResultModel<BrandsDTO>() { data = (BrandsDTO)brands, message = "" });
+                Brands datas = null;
+                datas = unitOfWork.Brands.SingleOrDefault(s=>s.Id.ToString().Equals(id) && s.IsDeleted== false);
+                response = StatusCode(StatusCodes.Status200OK, new ResultModel<Brands>() { data = datas, message = "" });
             }
             catch (Exception)
             {
@@ -87,7 +88,6 @@ namespace Mirapi.Controllers
 
         [AllowAnonymous]
         [HttpGet]
-        [Route("Get")]
         public IActionResult Get()
         {
             IActionResult response = BadRequest();
@@ -96,7 +96,7 @@ namespace Mirapi.Controllers
             {
 
                 List<Brands> datas = null;
-                datas = unitOfWork.Brands.GetAll().ToList();
+                datas = unitOfWork.Brands.GetAll().Where(s=>s.IsDeleted==false).ToList();
                 response = StatusCode(StatusCodes.Status200OK, new ResultModel<List<Brands>>() { data = datas, message = "" });
             }
             catch (Exception ex)
@@ -112,24 +112,28 @@ namespace Mirapi.Controllers
 
         [HttpPut]
         [Route("{id}")]
-        public IActionResult Update([FromBody] CarDTO car)
+        public IActionResult Update([FromBody] BrandsDTO request)
         {
             IActionResult response = BadRequest();
 
             try
             {
-                Cars oldCar = null;
-                oldCar = unitOfWork.Cars.SingleOrDefault(u => u.Id.ToString().Equals(oldCar.Id));
-                var brand = unitOfWork.Brands.SingleOrDefault(u => u.Id.ToString().Equals(car.brandId));
-                if (oldCar != null)
+             
+                var brand = unitOfWork.Brands.SingleOrDefault(u => u.Id.ToString().Equals(request.Id.ToString()));
+                if (brand!=null)
                 {
-                    oldCar.name = car.name;
-                    oldCar.modelYear = car.modelYear;
-                    oldCar.Brand = brand;
-
+                    brand.name = request.name;
                     unitOfWork.Save();
-                    response = StatusCode(StatusCodes.Status200OK, new ResultModel<CarDTO>() { data = null, message = "" });
+                    response = StatusCode(StatusCodes.Status200OK, new ResultModel<BrandsDTO>() { data = null, message = "Marka başarıyla güncellendi" });
+                    return response;
                 }
+                else
+                {
+                    response = StatusCode(StatusCodes.Status500InternalServerError, new ResultModel<PostDTO>() { data = null, message = "Hata oluştu." });
+
+                }
+
+
             }
             catch (Exception)
             {

@@ -35,7 +35,7 @@ namespace Mirapi.Controllers
 
 
 
-            if (String.IsNullOrEmpty(car.name))
+            if (String.IsNullOrEmpty(car.name) || String.IsNullOrEmpty(car.brandId))
             {
                 return response;
             }
@@ -74,7 +74,7 @@ namespace Mirapi.Controllers
             try
             {
                 Cars datas = null;
-                datas = unitOfWork.Cars.SingleOrDefault(s=>s.Id.ToString().Equals(id));
+                datas = unitOfWork.Cars.SingleOrDefault(s=>s.Id.ToString().Equals(id) && s.IsDeleted == false);
                 response = StatusCode(StatusCodes.Status200OK, new ResultModel<Cars>() { data = datas, message = "" });
             }
             catch (Exception)
@@ -88,7 +88,6 @@ namespace Mirapi.Controllers
         }
 
         [HttpGet]
-        [Route("Get")]
         public IActionResult Get()
         {
             IActionResult response = BadRequest();
@@ -97,7 +96,7 @@ namespace Mirapi.Controllers
             {
                 List<Cars> datas = null;
 
-                datas = unitOfWork.Cars.GetAll().Include(s => s.Brand).ToList();
+                datas = unitOfWork.Cars.GetAll().Where(s=>s.IsDeleted==false).Include(s => s.Brand).ToList();
                 response = StatusCode(StatusCodes.Status200OK, new ResultModel<List<Cars>>() { data = datas , message = "" });
             }
             catch (Exception ex)
@@ -120,13 +119,45 @@ namespace Mirapi.Controllers
             try
             {
                 Cars oldCar = null;
-                oldCar = unitOfWork.Cars.SingleOrDefault(u => u.Id.ToString().Equals(oldCar.Id));
+                oldCar = unitOfWork.Cars.SingleOrDefault(u => u.Id.ToString().Equals(car.Id.ToString()));
+                var brand = unitOfWork.Brands.SingleOrDefault(u=>u.Id.ToString().Equals(car.brandId.ToString()));
 
                 if (oldCar!=null)
                 {
                     oldCar.name = car.name;
                     oldCar.modelYear = car.modelYear;
-                   // oldCar.Brand = car.brand;
+                    oldCar.Brand = brand;
+
+                    unitOfWork.Save();
+                    response = StatusCode(StatusCodes.Status200OK, new ResultModel<CarDTO>() { data = null, message = "" });
+                }
+            }
+            catch (Exception)
+            {
+
+                response = StatusCode(StatusCodes.Status500InternalServerError, new ResultModel<PostDTO>() { data = null, message = "Hata oluştu." });
+            }
+
+
+            return response;
+        }
+
+
+        [HttpDelete]
+        [Route("{id}")]
+        public IActionResult Delete(string id)
+        {
+            IActionResult response = BadRequest();
+
+            try
+            {
+                Cars oldCar = null;
+                oldCar = unitOfWork.Cars.SingleOrDefault(u => u.Id.ToString().Equals(id.ToString()));
+               
+
+                if (oldCar != null)
+                {
+                    oldCar.IsDeleted = true;
 
                     unitOfWork.Save();
                     response = StatusCode(StatusCodes.Status200OK, new ResultModel<CarDTO>() { data = null, message = "" });

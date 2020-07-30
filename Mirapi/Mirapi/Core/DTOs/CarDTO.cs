@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Mirapi.Core.DTOs
 {
-    public class CarDTO
+    public class CarDTO : BaseObject
     {
         public string name { get; set; }
         public int modelYear { get; set; }
