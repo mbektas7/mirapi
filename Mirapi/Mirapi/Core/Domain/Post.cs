@@ -13,10 +13,10 @@ namespace Mirapi.Core.Domain
 
         public bool isAnswered { get; set; }
 
-        public int parent_postId { get; set; }
+        public virtual Post parent { get; set; }
 
-        public int userId { get; set; }
+        public virtual User user { get; set; }
 
-        public int carId { get; set; }
+        public virtual Cars car { get; set; }
     }
 }

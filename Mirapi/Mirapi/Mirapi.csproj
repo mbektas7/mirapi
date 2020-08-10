@@ -10,6 +10,14 @@
     <Compile Remove="Migrations\20200729080116_alt.Designer.cs" />
     <Compile Remove="Migrations\20200729080623_e.cs" />
     <Compile Remove="Migrations\20200729080623_e.Designer.cs" />
+    <Compile Remove="Migrations\20200810061758_test.cs" />
+    <Compile Remove="Migrations\20200810061758_test.Designer.cs" />
+    <Compile Remove="Migrations\20200810062106_test1.cs" />
+    <Compile Remove="Migrations\20200810062106_test1.Designer.cs" />
+    <Compile Remove="Migrations\20200810062153_test.cs" />
+    <Compile Remove="Migrations\20200810062153_test.Designer.cs" />
+    <Compile Remove="Migrations\20200810062323_test.cs" />
+    <Compile Remove="Migrations\20200810062323_test.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

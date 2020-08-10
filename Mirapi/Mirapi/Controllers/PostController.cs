@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Mirapi.Core.Domain;
 using Mirapi.Core.DTOs;
 using Mirapi.Core.Helpers;
@@ -41,14 +42,17 @@ namespace Mirapi.Controllers
             {
                 return response;
             }
-
+            var car = unitOfWork.Cars.Find(q => q.Id.ToString() == post.carId.ToString()).FirstOrDefault();
+            var tokenS = Functions.tokenS(Request);
+            var uId = tokenS.Claims.First(claim => claim.Type == "userid").Value;
+            var user = unitOfWork.Users.Find(s => s.Id.ToString() == uId).FirstOrDefault();
             Post newPost = new Post
             {
                 title = post.title,
                 message = post.message,
-                userId = post.userId,
+                user = user,
                 isAnswered = false,
-                carId = post.carId
+                car = car
             };
             try
             {
@@ -72,10 +76,11 @@ namespace Mirapi.Controllers
 
             try
             {
-                var posts = unitOfWork.Post.GetAll();
-                response = StatusCode(StatusCodes.Status200OK, new ResultModel<PostDTO>() { data = (PostDTO)posts, message = "" });
+                List<Post> datas = null;
+                datas = unitOfWork.Post.GetAll().Where(s=>s.IsDeleted == false).Include(a=>a.user).Include(q=>q.car).ToList();
+                response = StatusCode(StatusCodes.Status200OK, new ResultModel<List<Post>>() { data = datas, message = "" });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
                 response = StatusCode(StatusCodes.Status500InternalServerError, new ResultModel<PostDTO>() { data = null, message = "Hata oluştu." });
@@ -83,6 +88,7 @@ namespace Mirapi.Controllers
             
             
             return response;
+
         }
 
     }
