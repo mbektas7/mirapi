@@ -13,6 +13,11 @@ namespace Mirapi.Core.Domain
 
         public bool isAnswered { get; set; }
 
+        public int view { get; set; }
+
+        public int vote { get; set; }
+        public int answer { get; set; }
+
         public virtual Post parent { get; set; }
 
         public virtual User user { get; set; }
