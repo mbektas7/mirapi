@@ -91,5 +91,29 @@ namespace Mirapi.Controllers
 
         }
 
+
+
+        [HttpGet]
+        [Route("{id}")]
+        public IActionResult GetById(string id)
+        {
+            IActionResult response = BadRequest();
+
+            try
+            {
+                Post datas = null;
+                datas = unitOfWork.Post.SingleOrDefault(s => s.Id.ToString().Equals(id) && s.IsDeleted == false);
+                response = StatusCode(StatusCodes.Status200OK, new ResultModel<Post>() { data = datas, message = "" });
+            }
+            catch (Exception)
+            {
+
+                response = StatusCode(StatusCodes.Status500InternalServerError, new ResultModel<PostDTO>() { data = null, message = "Hata oluştu." });
+            }
+
+
+            return response;
+        }
+
     }
 }
