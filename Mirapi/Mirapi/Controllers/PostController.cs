@@ -102,7 +102,7 @@ namespace Mirapi.Controllers
             try
             {
                 Post datas = null;
-                datas = unitOfWork.Post.SingleOrDefault(s => s.Id.ToString().Equals(id) && s.IsDeleted == false);
+                datas = unitOfWork.Post.GetAll().Include(a=>a.user).Include(b=>b.car).SingleOrDefault(s => s.Id.ToString().Equals(id) && s.IsDeleted == false);
                 response = StatusCode(StatusCodes.Status200OK, new ResultModel<Post>() { data = datas, message = "" });
             }
             catch (Exception)
