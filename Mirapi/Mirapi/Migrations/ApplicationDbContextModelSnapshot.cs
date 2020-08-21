@@ -250,12 +250,56 @@ namespace Mirapi.Migrations
                         .HasForeignKey("carId");
 
                     b.HasOne("Mirapi.Core.Domain.Post", "parent")
-                        .WithMany()
+                        .WithMany("answers")
                         .HasForeignKey("parentId");
 
                     b.HasOne("Mirapi.Core.Domain.User", "user")
                         .WithMany()
                         .HasForeignKey("userId");
+                });
+
+            modelBuilder.Entity("Mirapi.Core.Domain.User", b =>
+                {
+                    b.OwnsMany("Mirapi.Core.Domain.RefreshToken", "RefreshTokens", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer")
+                                .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                            b1.Property<DateTime>("Created")
+                                .HasColumnType("timestamp without time zone");
+
+                            b1.Property<string>("CreatedByIp")
+                                .HasColumnType("text");
+
+                            b1.Property<DateTime>("Expires")
+                                .HasColumnType("timestamp without time zone");
+
+                            b1.Property<string>("ReplacedByToken")
+                                .HasColumnType("text");
+
+                            b1.Property<DateTime?>("Revoked")
+                                .HasColumnType("timestamp without time zone");
+
+                            b1.Property<string>("RevokedByIp")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Token")
+                                .HasColumnType("text");
+
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("UserId");
+
+                            b1.ToTable("RefreshToken");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
                 });
 #pragma warning restore 612, 618
         }

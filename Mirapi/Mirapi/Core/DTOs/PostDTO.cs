@@ -13,9 +13,9 @@ namespace Mirapi.Core.DTOs
 
         public bool isAnswered { get; set; }
 
-        public int parentId { get; set; }
+        public string parentId { get; set; }
 
-        public int userId { get; set; }
+        public string userId { get; set; }
 
         public string carId { get; set; }
     }

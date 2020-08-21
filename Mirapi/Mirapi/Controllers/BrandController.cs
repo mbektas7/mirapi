@@ -14,7 +14,7 @@ using Mirapi.Persistence;
 namespace Mirapi.Controllers
 {
 
-    [ErrorLog, ActionExecuteLog, Route("api/Brand"), Produces("application/json")]
+    [ErrorLog, Authorize, ActionExecuteLog, Route("api/Brand"), Produces("application/json")]
     public class BrandController : Controller
     {
         private UnitOfWork unitOfWork;
@@ -25,13 +25,13 @@ namespace Mirapi.Controllers
         }
 
 
-        [AllowAnonymous]
         /// <summary>
         /// Add new post
         /// </summary>
         /// <param name="post"></param>
         /// <returns></returns>
         [HttpPost]
+        [Route("post")]
         public IActionResult Post([FromBody] BrandsDTO brand)
         {
             IActionResult response = BadRequest();
@@ -86,7 +86,6 @@ namespace Mirapi.Controllers
         }
 
 
-        [AllowAnonymous]
         [HttpGet]
         public IActionResult Get()
         {

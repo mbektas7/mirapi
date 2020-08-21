@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Mirapi.Core.Domain
@@ -36,6 +37,8 @@ namespace Mirapi.Core.Domain
 
         public string Address { get; set; }
 
+        [JsonIgnore]
+        public List<RefreshToken> RefreshTokens { get; set; }
 
 
     }

@@ -18,6 +18,7 @@ using Mirapi.Core.Domain;
 using Mirapi.Core.DTOs;
 using Mirapi.Core.Helpers;
 using Mirapi.Persistence;
+using Microsoft.AspNetCore.Cors;
 
 namespace Mirapi.Controllers
 {
@@ -34,29 +35,65 @@ namespace Mirapi.Controllers
 
         [AllowAnonymous]
         [HttpPost]
+   
         public IActionResult Post([FromBody] LoginDTO login)
         {
-            IActionResult response = Unauthorized();
-            var user = Authenticate(login);
-            if (user != null)
-            {
-                if (user.IsMailConfirmed)
-                {
-                    var bearerToken = BuildToken(user);
-                    response = Ok(bearerToken);
+            var response = Authenticate(login, ipAddress());
 
-                }
-                else
-                {
-                    response = StatusCode(StatusCodes.Status401Unauthorized, "Mail adresinizi doğrulayınız.");
-                }
+            if (response == null)
+                return BadRequest(new { message = "Username or password is incorrect" });
 
-            }
-            return response;
+            HttpContext.Response.Cookies.Append("refreshToken", response.RefreshToken, new CookieOptions { HttpOnly = true, SameSite = SameSiteMode.Lax, Expires = DateTime.Now.AddMinutes(30) });          //  setTokenCookie(response.RefreshToken);
+
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [Route("{id}/refresh-tokens")]
+        public IActionResult GetRefreshTokens(string id)
+        {
+            var user = unitOfWork.Users.Find(s => s.Id.ToString().Equals(id.ToString())).FirstOrDefault();
+            if (user == null) return NotFound();
+
+            return Ok(user.RefreshTokens);
         }
 
         [AllowAnonymous]
+        [HttpPost("refresh-token")]
+        public IActionResult RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            var response = RefreshToken(refreshToken, ipAddress());
+
+            if (response == null)
+                return Unauthorized(new { message = "Invalid token" });
+
+            setTokenCookie(response.RefreshToken);
+
+            return Ok(response);
+        }
+
+        [HttpPost]
+        [Route("revoke-token")]
+        public IActionResult RevokeToken([FromBody] RevokeTokenRequest model)
+        {
+            // accept token from request body or cookie
+            var token = model.Token ?? Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest(new { message = "Token is required" });
+
+            var response = RevokeToken(token, ipAddress());
+
+            if (!response)
+                return NotFound(new { message = "Token not found" });
+
+            return Ok(new { message = "Token revoked" });
+        }
+
+
         [HttpGet]
+        [Authorize]
         [Route("isAuthenticatedLoginThatPage")]
         public IActionResult isAuthenticatedLoginThatPage(string pageType)
         {
@@ -66,8 +103,10 @@ namespace Mirapi.Controllers
 
             return response;
         }
-        [AllowAnonymous]
+
+
         [HttpPost]
+        [Authorize]
         [Route("isUserLoggedInWithoutRefreshing")]
         public IActionResult isUserLoggedInWithoutRefreshing(string pageType)
         {
@@ -77,7 +116,7 @@ namespace Mirapi.Controllers
 
             return response;
         }
-        
+
 
 
         private string BuildToken(User user)
@@ -109,7 +148,7 @@ namespace Mirapi.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        private User Authenticate(LoginDTO login)
+        private AuthenticateResponse Authenticate(LoginDTO login, string ipAddress)
         {
 
             User user = unitOfWork.Users.Find(u =>
@@ -118,113 +157,106 @@ namespace Mirapi.Controllers
             u.IsDeleted.Equals(false))
             .FirstOrDefault();
 
-            return user;
+            var jwtToken = BuildToken(user);
+            var refreshToken = generateRefreshToken(ipAddress);
+
+            // save refresh token
+            user.RefreshTokens.Add(refreshToken);
+            unitOfWork.Save();
+
+
+            return new AuthenticateResponse(user, jwtToken, refreshToken.Token); ;
         }
 
-        //Proje tüm bilgileri alınıyor
-        private Assembly GetAssemblyInfo() => Assembly.GetExecutingAssembly();
 
-        //Proje içindeki tüm typler alınıyor
-        private Type[] GetAllTypes() => GetAssemblyInfo().GetTypes();
-
-        //Proje içindeki tüm controller listesi alınıyor
-        private IEnumerable<Type> GetAllControllers() => GetAllTypes().Where(type => typeof(Controller).IsAssignableFrom(type));
-
-        //Proje içindeki tüm controller içindeki methotlar listesi alınıyor
-        private IEnumerable<MethodInfo> GetAllMethods() => GetAllControllers().SelectMany(type => type.GetMethods())
-            .Where(method =>
-            method.IsPublic &&
-            (method.IsDefined(typeof(HttpPostAttribute)) ||
-            method.IsDefined(typeof(HttpGetAttribute)) ||
-            method.IsDefined(typeof(HttpPutAttribute)) ||
-            method.IsDefined(typeof(HttpDeleteAttribute)))
-            );
-
-        //metotlardaki claim atributlerindeki valueler alınıyor ve eğer db de yoksa ekleniyor
-        //private void ClaimsInsertToDBInMethodsOfAssembly()
-        //{
-        //    try
-        //    {
-        //        var methodList = GetAllMethods();
-        //        ClaimController claimController = new ClaimController();
-        //        foreach (var item in methodList)
-        //        {
-        //            Attribute authorizesControl = item.GetCustomAttribute(typeof(AuthorizesControlAttribute));
-        //            if (authorizesControl != null)
-        //            {
-        //                string[] authorizesControlAttributeClaimValue = ((Mirapi.Core.Helpers.AuthorizesControlAttribute)authorizesControl).Claim;
-        //                if (authorizesControlAttributeClaimValue != null)
-        //                {
-        //                    string authorizesControlAttributeValue = ((Mirapi.Core.Helpers.AuthorizesControlAttribute)authorizesControl).Claim.FirstOrDefault();
-        //                    string authorizesControlAttributeValueName = ((Mirapi.Core.Helpers.AuthorizesControlAttribute)authorizesControl).Claim.LastOrDefault();
-        //                    claimController.Create(
-        //                        new ClaimDTO()
-        //                        {
-        //                            url = authorizesControlAttributeValue,
-        //                            name = authorizesControlAttributeValueName
-
-        //                        }
-        //                        );
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch(Exception ex)
-        //    {
-
-        //    }
-        //}
-
-  
-        public class Item
+        private AuthenticateResponse RefreshToken(string token, string ipAddress)
         {
-            public string kind { get; set; }
-            public string etag { get; set; }
-            public string id { get; set; }
-            public string status { get; set; }
-            public string htmlLink { get; set; }
-            public DateTime created { get; set; }
-            public DateTime updated { get; set; }
-            public string summary { get; set; }
-            public Creator creator { get; set; }
-            public Organizer organizer { get; set; }
-            public Start start { get; set; }
-            public End end { get; set; }
-            public string transparency { get; set; }
-            public string visibility { get; set; }
-            public string iCalUID { get; set; }
-            public int sequence { get; set; }
+            var user = unitOfWork.Users.SingleOrDefault(u => u.RefreshTokens.Any(t => t.Token == token));
+
+            // return null if no user found with token
+            if (user == null) return null;
+
+            var refreshToken = user.RefreshTokens.Single(x => x.Token == token);
+
+            // return null if token is no longer active
+            if (!refreshToken.IsActive) return null;
+
+            // replace old refresh token with a new one and save
+            var newRefreshToken = generateRefreshToken(ipAddress);
+            refreshToken.Revoked = DateTime.UtcNow;
+            refreshToken.RevokedByIp = ipAddress;
+            refreshToken.ReplacedByToken = newRefreshToken.Token;
+            user.RefreshTokens.Add(newRefreshToken);
+            unitOfWork.Save();
+
+            // generate new jwt
+            var jwtToken = BuildToken(user);
+
+            return new AuthenticateResponse(user, jwtToken, newRefreshToken.Token);
         }
 
-        public class Creator
+        private bool RevokeToken(string token, string ipAddress)
         {
-            public string email { get; set; }
-            public string displayName { get; set; }
-            public bool self { get; set; }
+            var user = unitOfWork.Users.SingleOrDefault(u => u.RefreshTokens.Any(t => t.Token == token));
+
+            // return false if no user found with token
+            if (user == null) return false;
+
+            var refreshToken = user.RefreshTokens.Single(x => x.Token == token);
+
+            // return false if token is not active
+            if (!refreshToken.IsActive) return false;
+
+            // revoke token and save
+            refreshToken.Revoked = DateTime.UtcNow;
+            refreshToken.RevokedByIp = ipAddress;
+            unitOfWork.Save();
+
+            return true;
         }
 
-        public class Organizer
+
+        private string ipAddress()
         {
-            public string email { get; set; }
-            public string displayName { get; set; }
-            public bool self { get; set; }
+            if (Request.Headers.ContainsKey("X-Forwarded-For"))
+                return Request.Headers["X-Forwarded-For"];
+            else
+                return HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
         }
 
-        public class Start
+
+        private RefreshToken generateRefreshToken(string ipAddress)
         {
-            public string date { get; set; }
+            using (var rngCryptoServiceProvider = new System.Security.Cryptography.RNGCryptoServiceProvider())
+            {
+                var randomBytes = new byte[64];
+                rngCryptoServiceProvider.GetBytes(randomBytes);
+                return new RefreshToken
+                {
+                    Token = Convert.ToBase64String(randomBytes),
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Created = DateTime.UtcNow,
+                    CreatedByIp = ipAddress
+                };
+            }
         }
 
-        public class End
+        private void setTokenCookie(string token)
         {
-            public string date { get; set; }
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("refreshToken", token, cookieOptions);
         }
-        public class HolidayCostum
+
+
+        public class RevokeTokenRequest
         {
-            public string summary { get; set; }
-            public Start start { get; set; }
-            public End end { get; set; }
+            public string Token { get; set; }
         }
+
 
     }
 }

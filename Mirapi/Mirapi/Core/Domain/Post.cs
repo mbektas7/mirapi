@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,5 +24,7 @@ namespace Mirapi.Core.Domain
         public virtual User user { get; set; }
 
         public virtual Cars car { get; set; }
+
+        public virtual ICollection<Post>  answers { get; set; }
     }
 }
